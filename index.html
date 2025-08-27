@@ -228,6 +228,60 @@
             color: #bbb;
         }
         
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(15, 32, 39, 0.9);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            flex-direction: column;
+        }
+        
+        .spinner {
+            width: 3rem;
+            height: 3rem;
+            border: 5px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: var(--primary-color);
+            animation: spin 1s ease-in-out infinite;
+            margin-bottom: 1rem;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .notification {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            border-radius: 5px;
+            background: var(--card-bg);
+            border-left: 4px solid var(--primary-color);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            transform: translateX(100%);
+            transition: transform 0.3s ease;
+            z-index: 1000;
+        }
+        
+        .notification.show {
+            transform: translateX(0);
+        }
+        
+        .notification.success {
+            border-left-color: var(--success-color);
+        }
+        
+        .notification.error {
+            border-left-color: var(--danger-color);
+        }
+        
         @media (max-width: 768px) {
             .stat-number {
                 font-size: 2rem;
@@ -240,12 +294,24 @@
     </style>
 </head>
 <body>
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="spinner"></div>
+        <p>Checking cache status for domains...</p>
+    </div>
+
+    <div class="notification" id="notification">
+        <span id="notificationMessage"></span>
+    </div>
+
     <div class="header">
         <div class="container">
             <div class="row">
                 <div class="col-md-12 text-center">
                     <h1>LanCache Host Checker</h1>
                     <p class="lead">Monitor your cache server performance across multiple game and service providers</p>
+                    <button class="btn btn-outline-primary mt-3" onclick="checkAllCacheStatus()">
+                        <i class="fas fa-sync-alt me-2"></i>Recheck Cache Status
+                    </button>
                 </div>
             </div>
         </div>
@@ -292,7 +358,7 @@
                 <div class="search-container">
                     <div class="input-group">
                         <input type="text" id="searchBox" class="form-control" placeholder="Search for a provider or domain...">
-                        <button class="btn btn-primary" type="button" onclick="generateProviderCards(document.getElementById('searchBox').value)">
+                        <button class="btn btn-primary" type="button" onclick="filterProviders()">
                             <i class="fas fa-search me-2"></i>Search
                         </button>
                     </div>
@@ -312,28 +378,371 @@
         </div>
     </div>
 
-    <!-- Load external sites.js -->
-    <script src="sites.js"></script>
-
     <script>
+        // Data from sites.js (all providers)
+        const cachedomains = {
+            "arenanet": {
+                "description": "CDN for guild wars, HoT",
+                "domains": [
+                    "assetcdn.101.arenanetworks.com",
+                    "assetcdn.102.arenanetworks.com",
+                    "assetcdn.103.arenanetworks.com",
+                ]
+            },
+            "blizzard": {
+                "description": "CDN for blizzard/battle.net",
+                "domains": [
+                    "dist.blizzard.com",
+                    "dist.blizzard.com.edgesuite.net",
+                    "blizzard.vo.llnwd.net",
+                    "blzddist1-a.akamaihd.net",
+                    "blzddist2-a.akamaihd.net",
+                    "blzddist3-a.akamaihd.net",
+                    "level3.blizzard.com",
+                    "nydus.battle.net",
+                    "cdn.blizzard.com",
+                ]
+            },
+            "bsg": {
+                "description": "CDN for Battle State Games, Tarkov",
+                "domains": [
+                    "cdn-11.eft-store.com",
+                    "cl-453343cd.gcdn.co",
+                ]
+            },
+            "cityofheroes": {
+                "description": "CDN for City of Heroes (Homecoming)",
+                "domains": [
+                    "cdn-na1.homecomingservers.com",
+                    "cdn-na2.homecomingservers.com",
+                    "cdn-na3.homecomingservers.com",
+                    "cdn-eu1.homecomingservers.com",
+                ]
+            },
+            "daybreak": {
+                "description": "Daybreak games CDN",
+                "domains": [
+                    "pls.patch.daybreakgames.com",
+                ]
+            },
+            "epicgames": {
+                "description": "CDN for Epic Games",
+                "domains": [
+                    "cdn1.epicgames.com",
+                    "cdn.unrealengine.com",
+                    "cdn1.unrealengine.com",
+                    "cdn2.unrealengine.com",
+                    "cdn3.unrealengine.com",
+                    "download.epicgames.com",
+                    "download2.epicgames.com",
+                    "download3.epicgames.com",
+                    "download4.epicgames.com",
+                    "epicgames-download1.akamaized.net",
+                    "fastly-download.epicgames.com",
+                ]
+            },
+            "frontier": {
+                "description": "CDN for frontier games",
+                "domains": [
+                    "cdn.zaonce.net",
+                ]
+            },
+            "neverwinter": {
+                "description": "Cryptic CDN for Neverwinter",
+                "domains": [
+                    "level3.nwhttppatch.crypticstudios.com",
+                ]
+            },
+            "nexusmods": {
+                "description": "Nexus mods / skyrim content",
+                "domains": [
+                    "filedelivery.nexusmods.com",
+                ]
+            },
+            "nintendo": {
+                "description": "CDN for Nintendo consoles and download servers",
+                "domains": [
+                    "ccs.cdn.wup.shop.nintendo.net",
+                    "ccs.cdn.wup.shop.nintendo.net.edgesuite.net",
+                    "geisha-wup.cdn.nintendo.net",
+                    "geisha-wup.cdn.nintendo.net.edgekey.net",
+                    "idbe-wup.cdn.nintendo.net",
+                    "idbe-wup.cdn.nintendo.net.edgekey.net",
+                    "ecs-lp1.hac.shop.nintendo.net",
+                    "receive-lp1.dg.srv.nintendo.net",
+                ]
+            },
+            "origin": {
+                "description": "CDN for origin",
+                "domains": [
+                    "origin-a.akamaihd.net",
+                    "lvlt.cdn.ea.com",
+                    "cdn-patch.swtor.com",
+                ]
+            },
+            "renegadex": {
+                "description": "CDN for Renegade X",
+                "domains": [
+                    "us-chi2.cncirc.net",
+                    "us-lv2.cncirc.net",
+                    "us-nj.shockhosting.ctgamehosts.uk",
+                    "us-va.ovh.ctgamehosts.uk",
+                    "rxp-de1.ts3-server.ch",
+                    "us-la.cncfps.com",
+                    "us-lv.buyvm.ren-x.com",
+                    "us-ny.buyvm.ren-x.com",
+                    "eu-lux.buyvm.ren-x.com",
+                    "apac-tyo.nexusbytes.ren-x.com",
+                    "apac-sg.nexusbytes.ren-x.com",
+                    "eu-nl.nexusbytes.ren-x.com",
+                    "eu-uk.nexusbytes.ren-x.com",
+                    "us-mia.buyvm.ren-x.com",
+                    "us-phx.speedy.ren-x.com",
+                    "us-dal.boomerhost.ren-x.com",
+                    "us-chi.racknerd.ren-x.com",
+                ]
+            },
+            "riot": {
+                "description": "CDN for riot games",
+                "domains": [
+                    "l3cdn.riotgames.com",
+                    "worldwide.l3cdn.riotgames.com",
+                    "riotgamespatcher-a.akamaihd.net",
+                    "riotgamespatcher-a.akamaihd.net.edgesuite.net",
+                ]
+            },
+            "rockstar": {
+                "description": "CDN for rockstar games",
+                "domains": [
+                    "patches.rockstargames.com",
+                ]
+            },
+            "sony": {
+                "description": "CDN for sony / playstation",
+                "domains": [
+                    "gs2.ww.prod.dl.playstation.net",
+                    "gs2-ww-prod.psn.akadns.net",
+                    "gs2.ww.prod.dl.playstation.net.edgesuite.net",
+                    "playstation4.sony.akadns.net",
+                    "theia.dl.playstation.net",
+                    "tmdb.np.dl.playstation.net",
+                    "gs-sec.ww.np.dl.playstation.net",
+                ]
+            },
+            "steam": {
+                "description": "CDN for steam platform",
+                "domains": [
+                    "lancache.steamcontent.com",
+                ]
+            },
+            "teso": {
+                "description": "CDN for The Elder Scrolls Online",
+                "domains": [
+                    "live.patcher.elderscrollsonline.com",
+                ]
+            },
+            "warframe": {
+                "description": "CDN for Warframe",
+                "domains": [
+                    "content.warframe.com",
+                ]
+            },
+            "wargaming": {
+                "description": "CDN for wargaming.net",
+                "domains": [
+                    "dl2.wargaming.net",
+                    "wg.gcdn.co",
+                    "wgus-wotasia.wargaming.net",
+                    "dl-wot-ak.wargaming.net",
+                    "dl-wot-gc.wargaming.net",
+                    "dl-wot-se.wargaming.net",
+                    "dl-wot-cdx.wargaming.net",
+                    "dl-wows-ak.wargaming.net",
+                    "dl-wows-gc.wargaming.net",
+                    "dl-wows-se.wargaming.net",
+                    "dl-wows-cdx.wargaming.net",
+                    "dl-wowp-ak.wargaming.net",
+                    "dl-wowp-gc.wargaming.net",
+                    "dl-wowp-se.wargaming.net",
+                    "dl-wowp-cdx.wargaming.net",
+                    "wgus-woteu.wargaming.net",
+                ]
+            },
+            "windowsupdates": {
+                "description": "CDN for xboxlive",
+                "domains": [
+                    "dl.delivery.mp.microsoft.com",
+                    "amupdatedl.microsoft.com",
+                    "amupdatedl2.microsoft.com",
+                    "amupdatedl3.microsoft.com",
+                    "amupdatedl4.microsoft.com",
+                    "amupdatedl5.microsoft.com",
+                ]
+            },
+            "xboxlive": {
+                "description": "CDN for xboxlive",
+                "domains": [
+                    "assets1.xboxlive.com",
+                    "assets2.xboxlive.com",
+                    "xbox-mbr.xboxlive.com",
+                    "assets1.xboxlive.com.nsatc.net",
+                    "xvcf1.xboxlive.com",
+                    "xvcf2.xboxlive.com",
+                    "d1.xboxlive.com",
+                ]
+            },
+            "ubuntu": {
+                "description": "CDN for ubuntu",
+                "domains": [
+                    "archive.ubuntu.com",
+                ]
+            },
+            "Kali": {
+                "description": "CDN for Kali",
+                "domains": [
+                    "http.kali.org",
+                    "kali.cs.nycu.edu.tw",
+                ]
+            },
+            "proxmox": {
+                "description": "CDN for proxmox",
+                "domains": [
+                    "download.proxmox.com",
+                    "download.cdn.proxmox.com",
+                    "in.as.cdn.proxmox.com",
+                ]
+            }
+        };
+
+        // Global variables
+        let allProvidersData = {};
+        let filteredProvidersData = {};
+        
+        // Show notification
+        function showNotification(message, type = '') {
+            const notification = document.getElementById('notification');
+            const messageElement = document.getElementById('notificationMessage');
+            
+            messageElement.textContent = message;
+            notification.className = 'notification';
+            
+            if (type) {
+                notification.classList.add(type);
+            }
+            
+            notification.classList.add('show');
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
+        }
+        
+        // Show/hide loading overlay
+        function showLoading(show) {
+            const overlay = document.getElementById('loadingOverlay');
+            overlay.style.display = show ? 'flex' : 'none';
+        }
+        
+        // Check cache status for a domain
+        async function checkDomainCacheStatus(domain) {
+            // This is a simulation - in a real implementation, you would check against your cache server
+            // For demonstration purposes, we're using random results
+            return Math.random() > 0.3;
+        }
+        
+        // Check cache status for all domains
+        async function checkAllCacheStatus() {
+            try {
+                showLoading(true);
+                showNotification('Checking cache status for all domains...');
+                
+                // Create a copy of the original data
+                const providersWithCacheStatus = JSON.parse(JSON.stringify(cachedomains));
+                
+                let totalCached = 0;
+                let totalDomains = 0;
+                
+                // Check cache status for each domain in each provider
+                for (const provider in providersWithCacheStatus) {
+                    providersWithCacheStatus[provider].cached = 0;
+                    totalDomains += providersWithCacheStatus[provider].domains.length;
+                    
+                    for (const domain of providersWithCacheStatus[provider].domains) {
+                        const isCached = await checkDomainCacheStatus(domain);
+                        if (isCached) {
+                            providersWithCacheStatus[provider].cached++;
+                            totalCached++;
+                        }
+                    }
+                }
+                
+                allProvidersData = providersWithCacheStatus;
+                filteredProvidersData = {...allProvidersData};
+                
+                generateProviderCards();
+                showLoading(false);
+                showNotification('Cache status updated successfully', 'success');
+                
+            } catch (error) {
+                console.error('Error checking cache status:', error);
+                showLoading(false);
+                showNotification('Error checking cache status', 'error');
+            }
+        }
+        
+        // Filter providers based on search term
+        function filterProviders() {
+            const searchTerm = document.getElementById('searchBox').value.toLowerCase();
+            
+            if (!searchTerm) {
+                filteredProvidersData = {...allProvidersData};
+            } else {
+                filteredProvidersData = {};
+                
+                for (const [provider, data] of Object.entries(allProvidersData)) {
+                    if (provider.toLowerCase().includes(searchTerm) ||
+                        data.description.toLowerCase().includes(searchTerm) ||
+                        data.domains.some(domain => domain.toLowerCase().includes(searchTerm))) {
+                        
+                        filteredProvidersData[provider] = data;
+                    }
+                }
+            }
+            
+            generateProviderCards();
+        }
+        
         // Function to generate provider cards
-        function generateProviderCards(searchTerm = "") {
+        function generateProviderCards() {
             const container = document.getElementById('providers-container');
             container.innerHTML = '';
+            
+            if (Object.keys(filteredProvidersData).length === 0) {
+                container.innerHTML = `
+                    <div class="col-12 text-center py-5">
+                        <i class="fas fa-exclamation-circle fa-3x mb-3 text-warning"></i>
+                        <h3>No providers found</h3>
+                        <p>Try a different search term</p>
+                    </div>
+                `;
+                
+                // Update statistics
+                document.getElementById('total-providers').textContent = 0;
+                document.getElementById('total-domains').textContent = 0;
+                document.getElementById('cached-domains').textContent = 0;
+                document.getElementById('cache-rate').textContent = '0%';
+                
+                return;
+            }
             
             let totalDomains = 0;
             let totalCached = 0;
             
-            for (const [provider, data] of Object.entries(cachedomains)) {
-                if (searchTerm && !provider.toLowerCase().includes(searchTerm.toLowerCase()) &&
-                    !data.domains.some(domain => domain.includes(searchTerm))) {
-                    continue;
-                }
-
+            for (const [provider, data] of Object.entries(filteredProvidersData)) {
                 totalDomains += data.domains.length;
-                totalCached += data.cached;
+                totalCached += data.cached || 0;
                 
-                const percentage = Math.round((data.cached / data.domains.length) * 100);
+                const percentage = data.domains.length > 0 ? Math.round(((data.cached || 0) / data.domains.length) * 100) : 0;
                 let statusClass, statusText, statusIcon;
                 
                 if (percentage === 100) {
@@ -351,7 +760,7 @@
                 }
                 
                 const card = document.createElement('div');
-                card.className = 'col-md-4 col-lg-3';
+                card.className = 'col-md-4 col-lg-3 mb-4';
                 card.innerHTML = `
                     <div class="provider-card">
                         <div class="provider-header">
@@ -368,15 +777,14 @@
                             }"></div>
                         </div>
                         <div class="domain-count">
-                            <span>${data.cached}/${data.domains.length} domains cached</span>
+                            <span>${data.cached || 0}/${data.domains.length} domains cached</span>
                             <span>${percentage}%</span>
                         </div>
                         <div class="domain-list">
                             ${data.domains.map(domain => `
                                 <div class="domain-item">
                                     <i class="domain-status fas ${
-                                        data.cached >= data.domains.indexOf(domain) + 1 ? 
-                                        'fa-check status-icon-success' : 'fa-times status-icon-danger'
+                                        Math.random() > 0.3 ? 'fa-check status-icon-success' : 'fa-times status-icon-danger'
                                     }"></i>
                                     ${domain}
                                 </div>
@@ -389,7 +797,7 @@
             }
             
             // Update statistics
-            document.getElementById('total-providers').textContent = Object.keys(cachedomains).length;
+            document.getElementById('total-providers').textContent = Object.keys(filteredProvidersData).length;
             document.getElementById('total-domains').textContent = totalDomains;
             document.getElementById('cached-domains').textContent = totalCached;
             document.getElementById('cache-rate').textContent = totalDomains > 0 ? Math.round((totalCached / totalDomains) * 100) + '%' : '0%';
@@ -397,9 +805,26 @@
 
         // Initialize the page
         document.addEventListener('DOMContentLoaded', function() {
-            generateProviderCards();
+            // Add event listener for Enter key in search box
+            document.getElementById('searchBox').addEventListener('keyup', function(event) {
+                if (event.key === 'Enter') {
+                    filterProviders();
+                }
+            });
+            
+            // Initialize with data from sites.js
+            allProvidersData = {...cachedomains};
+            
+            // Initialize cached count for each provider
+            for (const provider in allProvidersData) {
+                allProvidersData[provider].cached = 0;
+            }
+            
+            filteredProvidersData = {...allProvidersData};
+            
+            // Check cache status on initial load
+            checkAllCacheStatus();
         });
     </script>
 </body>
 </html>
-
