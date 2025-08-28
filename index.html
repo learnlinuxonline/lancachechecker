@@ -349,6 +349,21 @@
         .dns-test-failure {
             border-left: 4px solid var(--danger-color);
         }
+        
+        .nslookup-guide {
+            background: rgba(15, 32, 39, 0.7);
+            border-radius: 5px;
+            padding: 15px;
+            margin-top: 15px;
+            border-left: 4px solid var(--primary-color);
+        }
+        
+        .nslookup-guide code {
+            background: #0f2027;
+            padding: 2px 5px;
+            border-radius: 3px;
+            color: var(--primary-color);
+        }
 
         @media (max-width: 768px) {
             .stat-number {
@@ -730,46 +745,60 @@
             
             try {
                 // Method 1: Try WebRTC detection first
-                const dnsServers = await detectDnsWithWebRTC();
+                const detectedIps = await detectIpsWithWebRTC();
                 
-                if (dnsServers && dnsServers.length > 0) {
-                    const detectedDns = dnsServers.join(', ');
-                    
-                    if (dnsServers.includes(lancacheDns)) {
-                        dnsCheckContainer.innerHTML = `
-                            <div class="dns-check-success">
-                                <i class="fas fa-check-circle me-2"></i>
-                                DNS detected: <span class="dns-ok">${detectedDns}</span><br>
-                                ✅ Configuration matches your LanCache server requirement (${lancacheDns})
-                            </div>
-                        `;
-                        return true;
-                    } else {
-                        dnsCheckContainer.innerHTML = `
-                            <div class="dns-check-error">
-                                <i class="fas fa-exclamation-triangle me-2"></i>
-                                DNS detected: <span class="dns-bad">${detectedDns}</span><br>
-                                ❌ Does not match your LanCache server requirement (${lancacheDns}).
-                            </div>
-                            ${getDnsHelpContent()}
-                        `;
-                        return false;
-                    }
+                // Show what we detected but explain the limitations
+                let detectedMessage = "";
+                if (detectedIps && detectedIps.length > 0) {
+                    detectedMessage = `<p>Network IPs detected: <code>${detectedIps.join(', ')}</code></p>
+                    <p><small><em>Note: Browser restrictions prevent accurate DNS detection. These may not be your actual DNS servers.</em></small></p>`;
                 }
                 
-                // Method 2: If WebRTC fails, try DNS resolution test
                 dnsCheckContainer.innerHTML = `
                     <div class="dns-check-info">
                         <i class="fas fa-info-circle me-2"></i>
-                        Can't automatically detect your DNS settings due to browser restrictions.
+                        Browser restrictions prevent accurate DNS server detection
                     </div>
-                    ${getDnsHelpContent()}
+                    ${detectedMessage}
                     <div class="manual-dns-check">
-                        <p>Let's test if your DNS is working correctly:</p>
-                        <button class="btn btn-primary dns-guide-btn" onclick="testDnsResolution()">
-                            <i class="fas fa-network-wired me-2"></i>Test DNS Resolution
-                        </button>
-                        <div id="dnsTestResult"></div>
+                        <p><strong>To use LanCache, your DNS must be set to:</strong></p>
+                        <div class="alert alert-dark">
+                            <code>${lancacheDns}</code>
+                        </div>
+                        
+                        <div class="nslookup-guide">
+                            <h6><i class="fas fa-terminal me-2"></i>How to check your actual DNS:</h6>
+                            <ol>
+                                <li>Open Command Prompt</li>
+                                <li>Type <code>nslookup</code> and press Enter</li>
+                                <li>Look for the "Default Server" and "Address" lines</li>
+                                <li>Compare with your required DNS: <code>${lancacheDns}</code></li>
+                            </ol>
+                            <p class="mb-1">Example of correct output:</p>
+                            <code>
+                                Default Server: dns.yourlancache.com<br>
+                                Address: ${lancacheDns}
+                            </code>
+                        </div>
+                        
+                        <p class="mt-3">If your DNS doesn't match, follow these steps to change it:</p>
+                        <ol>
+                            <li>Open Network and Sharing Center</li>
+                            <li>Click on your active connection</li>
+                            <li>Click Properties → Internet Protocol Version 4 (TCP/IPv4)</li>
+                            <li>Select "Use the following DNS server addresses"</li>
+                            <li>Set the preferred DNS server to: <code>${lancacheDns}</code></li>
+                        </ol>
+                        <a href="https://lanconfig.learnlinuxonline.xyz" target="_blank" class="btn dns-guide-btn">
+                            <i class="fas fa-external-link-alt me-2"></i>Complete DNS Setup Guide
+                        </a>
+                        
+                        <div class="mt-3">
+                            <button class="btn btn-primary" onclick="testDnsResolution()">
+                                <i class="fas fa-network-wired me-2"></i>Test DNS Resolution
+                            </button>
+                            <div id="dnsTestResult" class="mt-2"></div>
+                        </div>
                     </div>
                 `;
                 
@@ -780,7 +809,7 @@
                 dnsCheckContainer.innerHTML = `
                     <div class="dns-check-error">
                         <i class="fas fa-exclamation-triangle me-2"></i>
-                        Error detecting DNS configuration.
+                        Error detecting network configuration.
                     </div>
                     ${getDnsHelpContent()}
                 `;
@@ -833,7 +862,7 @@
                             DNS resolution test passed!<br>
                             <small>${testDomain} resolves to ${ip}</small>
                         </div>
-                        <p class="mt-2">While we can't detect your exact DNS server, your system is able to resolve domains correctly.</p>
+                        <p class="mt-2">Your system is able to resolve domains correctly.</p>
                     `;
                 } else {
                     testResult.innerHTML = `
@@ -855,8 +884,8 @@
             }
         }
         
-        // Attempt to detect DNS using WebRTC
-        async function detectDnsWithWebRTC() {
+        // Attempt to detect IPs using WebRTC (not accurate for DNS but shows something)
+        async function detectIpsWithWebRTC() {
             return new Promise((resolve) => {
                 try {
                     if (!window.RTCPeerConnection) {
@@ -874,17 +903,17 @@
                         .then(offer => pc.setLocalDescription(offer))
                         .catch(() => resolve([]));
                     
-                    const dnsServers = [];
+                    const ips = [];
                     const timeout = setTimeout(() => {
                         pc.close();
-                        resolve(dnsServers);
+                        resolve(ips);
                     }, 2000);
                     
                     pc.onicecandidate = (ice) => {
                         if (!ice || !ice.candidate || !ice.candidate.candidate) {
                             clearTimeout(timeout);
                             pc.close();
-                            resolve(dnsServers);
+                            resolve(ips);
                             return;
                         }
                         
@@ -894,14 +923,14 @@
                         
                         if (ipMatch && ipMatch[1]) {
                             const ip = ipMatch[1];
-                            // Filter out common public IPs that aren't DNS servers
-                            if (!dnsServers.includes(ip) && 
+                            // Filter out common public IPs that aren't local
+                            if (!ips.includes(ip) && 
                                 !ip.startsWith('74.125.') && // Google STUN
                                 !ip.startsWith('172.217.') && // Google STUN
                                 !ip.startsWith('216.58.') &&  // Google STUN
                                 ip !== '0.0.0.0' &&
                                 ip !== '127.0.0.1') {
-                                dnsServers.push(ip);
+                                ips.push(ip);
                             }
                         }
                     };
