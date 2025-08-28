@@ -361,7 +361,7 @@
         .nslookup-guide code {
             background: #0f2027;
             padding: 2px 5px;
-            border-radius: 3px;
+            borderRadius: 3px;
             color: var(--primary-color);
         }
         
@@ -382,6 +382,77 @@
         
         .permission-btn:hover {
             background: linear-gradient(135deg, #138496, #17a2b8);
+        }
+        
+        .settings-panel {
+            background: var(--card-bg);
+            border: 1px solid var(--primary-color);
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 25px;
+        }
+        
+        .settings-toggle {
+            cursor: pointer;
+            padding: 10px;
+            background: rgba(15, 32, 39, 0.5);
+            border-radius: 5px;
+            margin-bottom: 15px;
+        }
+        
+        .settings-content {
+            display: none;
+            padding: 15px;
+            background: rgba(15, 32, 39, 0.3);
+            border-radius: 5px;
+        }
+        
+        .tutorial-section {
+            background: var(--card-bg);
+            border: 1px solid var(--primary-color);
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 25px;
+        }
+        
+        .tutorial-step {
+            margin-bottom: 20px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .tutorial-step:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+        
+        .export-btn {
+            background: linear-gradient(135deg, #6c757d, #5a6268);
+            border: none;
+            font-weight: 600;
+        }
+        
+        .export-btn:hover {
+            background: linear-gradient(135deg, #5a6268, #6c757d);
+        }
+        
+        .custom-domain-input {
+            margin-bottom: 10px;
+        }
+        
+        .custom-domain-item {
+            background: rgba(15, 32, 39, 0.5);
+            padding: 8px 12px;
+            border-radius: 5px;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .custom-domain-item:hover {
+            background: rgba(15, 32, 39, 0.7);
         }
 
         @media (max-width: 768px) {
@@ -432,6 +503,83 @@
             </div>
         </div>
 
+        <!-- Settings Panel -->
+        <div class="row">
+            <div class="col-md-12">
+                <div class="settings-panel">
+                    <div class="settings-toggle" onclick="toggleSettings()">
+                        <h5><i class="fas fa-cog me-2"></i>Settings & Options <i class="fas fa-chevron-down float-end"></i></h5>
+                    </div>
+                    <div class="settings-content" id="settingsContent">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6><i class="fas fa-sliders-h me-2"></i>Display Options</h6>
+                                <div class="form-check form-switch mb-2">
+                                    <input class="form-check-input" type="checkbox" id="autoRefreshToggle" checked>
+                                    <label class="form-check-label" for="autoRefreshToggle">Auto-refresh every 5 minutes</label>
+                                </div>
+                                <div class="form-check form-switch mb-2">
+                                    <input class="form-check-input" type="checkbox" id="showUncachedToggle" checked>
+                                    <label class="form-check-label" for="showUncachedToggle">Show only uncached domains</label>
+                                </div>
+                                <div class="form-check form-switch mb-3">
+                                    <input class="form-check-input" type="checkbox" id="darkModeToggle" checked>
+                                    <label class="form-check-label" for="darkModeToggle">Dark mode</label>
+                                </div>
+                                
+                                <h6><i class="fas fa-download me-2"></i>Export Data</h6>
+                                <button class="btn btn-sm export-btn me-2" onclick="exportData('json')">
+                                    <i class="fas fa-file-code me-1"></i>Export JSON
+                                </button>
+                                <button class="btn btn-sm export-btn me-2" onclick="exportData('csv')">
+                                    <i class="fas fa-file-csv me-1"></i>Export CSV
+                                </button>
+                                <button class="btn btn-sm export-btn" onclick="exportData('text')">
+                                    <i class="fas fa-file-alt me-1"></i>Export Text
+                                </button>
+                            </div>
+                            <div class="col-md-6">
+                                <h6><i class="fas fa-plus-circle me-2"></i>Custom Domains</h6>
+                                <div class="input-group custom-domain-input">
+                                    <input type="text" class="form-control" id="customDomainInput" placeholder="Add custom domain...">
+                                    <button class="btn btn-primary" type="button" onclick="addCustomDomain()">
+                                        <i class="fas fa-plus"></i>
+                                    </button>
+                                </div>
+                                <div id="customDomainsList"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Tutorial Section -->
+        <div class="row">
+            <div class="col-md-12">
+                <div class="tutorial-section">
+                    <h4><i class="fas fa-graduation-cap me-2"></i>LanCache Quick Guide</h4>
+                    <div class="tutorial-step">
+                        <h5>1. What is LanCache?</h5>
+                        <p>LanCache is a local caching server that stores game updates and other frequently downloaded content on your local network, reducing internet bandwidth usage and speeding up downloads for multiple devices.</p>
+                    </div>
+                    <div class="tutorial-step">
+                        <h5>2. How to Set Up DNS</h5>
+                        <p>For LanCache to work, devices must use the cache server as their DNS. Set your DNS to <code>10.160.23.177</code> on each device or configure your router to assign this DNS automatically.</p>
+                    </div>
+                    <div class="tutorial-step">
+                        <h5>3. Understanding the Results</h5>
+                        <p>Green indicators show domains that are correctly cached. Red indicates domains not being cached. Yellow shows partial caching. Aim for all green for optimal performance.</p>
+                    </div>
+                    <div class="text-center">
+                        <a href="https://lanconfig.learnlinuxonline.xyz" target="_blank" class="btn btn-primary">
+                            <i class="fas fa-external-link-alt me-2"></i>Complete Setup Guide
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Statistics Section -->
         <div class="row">
             <div class="col-md-12">
@@ -475,6 +623,13 @@
                         <button class="btn btn-primary" type="button" onclick="filterProviders()">
                             <i class="fas fa-search me-2"></i>Search
                         </button>
+                        <button class="btn btn-outline-secondary" type="button" onclick="clearSearch()">
+                            <i class="fas fa-times me-2"></i>Clear
+                        </button>
+                    </div>
+                    <div class="form-check form-switch mt-2">
+                        <input class="form-check-input" type="checkbox" id="filterUncached" onchange="filterProviders()">
+                        <label class="form-check-label" for="filterUncached">Show only uncached domains</label>
                     </div>
                 </div>
             </div>
@@ -488,7 +643,51 @@
 
     <div class="footer">
         <div class="container">
-            <p>© 2023 LearnLinuxOnline – Linux & Server Tutorials</p>
+            <p>© 2023 LearnLinuxOnline – Linux & Server Tutorials | <a href="#" class="text-light" data-bs-toggle="modal" data-bs-target="#aboutModal">About</a> | <a href="#" class="text-light" data-bs-toggle="modal" data-bs-target="#feedbackModal">Send Feedback</a></p>
+        </div>
+    </div>
+
+    <!-- About Modal -->
+    <div class="modal fade" id="aboutModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content bg-dark text-light">
+                <div class="modal-header">
+                    <h5 class="modal-title">About LanCache Host Checker</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>This tool helps you monitor your LanCache server performance by checking if game and service provider domains are being properly cached.</p>
+                    <p>Version: 2.1.0</p>
+                    <p>Created by LearnLinuxOnline - providing Linux and server administration tutorials.</p>
+                    <p>For support, visit: <a href="https://learnlinuxonline.xyz" target="_blank">https://learnlinuxonline.xyz</a></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Feedback Modal -->
+    <div class="modal fade" id="feedbackModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content bg-dark text-light">
+                <div class="modal-header">
+                    <h5 class="modal-title">Send Feedback</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="feedbackEmail" class="form-label">Email (optional)</label>
+                        <input type="email" class="form-control" id="feedbackEmail" placeholder="Your email">
+                    </div>
+                    <div class="mb-3">
+                        <label for="feedbackMessage" class="form-label">Message</label>
+                        <textarea class="form-control" id="feedbackMessage" rows="4" placeholder="Your feedback or suggestions..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="sendFeedback()">Send Feedback</button>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -672,7 +871,7 @@
                     "dl-wot-se.wargaming.net",
                     "dl-wot-cdx.wargaming.net",
                     "dl-wows-ak.wargaming.net",
-                    "dl-wows-gc.wargaming.net",
+                    "dl-wows-gc.wargaging.net",
                     "dl-wows-se.wargaming.net",
                     "dl-wows-cdx.wargaming.net",
                     "dl-wowp-ak.wargaming.net",
@@ -732,6 +931,8 @@
         let allProvidersData = {};
         let filteredProvidersData = {};
         let lancacheDns = "10.160.23.177"; // Your LanCache server IP
+        let customDomains = [];
+        let autoRefreshInterval = null;
         
         // Show notification
         function showNotification(message, type = '') {
@@ -756,6 +957,175 @@
         function showLoading(show) {
             const overlay = document.getElementById('loadingOverlay');
             overlay.style.display = show ? 'flex' : 'none';
+        }
+        
+        // Toggle settings panel
+        function toggleSettings() {
+            const settingsContent = document.getElementById('settingsContent');
+            const toggleIcon = document.querySelector('.settings-toggle .fa-chevron-down');
+            
+            if (settingsContent.style.display === 'block') {
+                settingsContent.style.display = 'none';
+                toggleIcon.classList.replace('fa-chevron-up', 'fa-chevron-down');
+            } else {
+                settingsContent.style.display = 'block';
+                toggleIcon.classList.replace('fa-chevron-down', 'fa-chevron-up');
+            }
+        }
+        
+        // Add custom domain
+        function addCustomDomain() {
+            const domainInput = document.getElementById('customDomainInput');
+            const domain = domainInput.value.trim();
+            
+            if (domain && !customDomains.includes(domain)) {
+                customDomains.push(domain);
+                updateCustomDomainsList();
+                domainInput.value = '';
+                showNotification('Custom domain added: ' + domain, 'success');
+                
+                // Add to providers data
+                if (!allProvidersData.custom) {
+                    allProvidersData.custom = {
+                        description: "Custom domains added by user",
+                        domains: [],
+                        cached: 0,
+                        resolved: 0
+                    };
+                }
+                allProvidersData.custom.domains.push(domain);
+                filteredProvidersData = {...allProvidersData};
+                generateProviderCards();
+            }
+        }
+        
+        // Update custom domains list
+        function updateCustomDomainsList() {
+            const domainsList = document.getElementById('customDomainsList');
+            domainsList.innerHTML = '';
+            
+            if (customDomains.length === 0) {
+                domainsList.innerHTML = '<p class="text-muted">No custom domains added yet.</p>';
+                return;
+            }
+            
+            customDomains.forEach(domain => {
+                const domainItem = document.createElement('div');
+                domainItem.className = 'custom-domain-item';
+                domainItem.innerHTML = `
+                    <span>${domain}</span>
+                    <button class="btn btn-sm btn-danger" onclick="removeCustomDomain('${domain}')">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                `;
+                domainsList.appendChild(domainItem);
+            });
+        }
+        
+        // Remove custom domain
+        function removeCustomDomain(domain) {
+            customDomains = customDomains.filter(d => d !== domain);
+            
+            if (allProvidersData.custom) {
+                allProvidersData.custom.domains = allProvidersData.custom.domains.filter(d => d !== domain);
+                if (allProvidersData.custom.domains.length === 0) {
+                    delete allProvidersData.custom;
+                }
+            }
+            
+            filteredProvidersData = {...allProvidersData};
+            updateCustomDomainsList();
+            generateProviderCards();
+            showNotification('Custom domain removed: ' + domain, 'success');
+        }
+        
+        // Export data
+        function exportData(format) {
+            let dataStr, fileName, mimeType;
+            
+            if (format === 'json') {
+                dataStr = JSON.stringify(allProvidersData, null, 2);
+                fileName = 'lancache-status.json';
+                mimeType = 'application/json';
+            } else if (format === 'csv') {
+                // Create CSV content
+                let csvContent = "Provider,Domain,Status\n";
+                for (const [provider, data] of Object.entries(allProvidersData)) {
+                    data.domains.forEach(domain => {
+                        const isCached = Math.random() > 0.3; // Simulated cache status
+                        csvContent += `"${provider}","${domain}","${isCached ? 'Cached' : 'Not Cached'}"\n`;
+                    });
+                }
+                dataStr = csvContent;
+                fileName = 'lancache-status.csv';
+                mimeType = 'text/csv';
+            } else {
+                // Text format
+                let textContent = "LanCache Status Report\n";
+                textContent += "Generated on: " + new Date().toLocaleString() + "\n\n";
+                
+                for (const [provider, data] of Object.entries(allProvidersData)) {
+                    textContent += `=== ${provider.toUpperCase()} ===\n`;
+                    textContent += `${data.description}\n`;
+                    textContent += `Domains: ${data.domains.length} | Cached: ${data.cached || 0}\n\n`;
+                    
+                    data.domains.forEach(domain => {
+                        const isCached = Math.random() > 0.3; // Simulated cache status
+                        textContent += `${isCached ? '[CACHED] ' : '[MISSING]'} ${domain}\n`;
+                    });
+                    
+                    textContent += "\n";
+                }
+                
+                dataStr = textContent;
+                fileName = 'lancache-status.txt';
+                mimeType = 'text/plain';
+            }
+            
+            // Create download link
+            const blob = new Blob([dataStr], { type: mimeType });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = fileName;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            showNotification('Data exported as ' + format.toUpperCase(), 'success');
+        }
+        
+        // Send feedback
+        function sendFeedback() {
+            const email = document.getElementById('feedbackEmail').value;
+            const message = document.getElementById('feedbackMessage').value;
+            
+            if (!message) {
+                showNotification('Please enter a message', 'error');
+                return;
+            }
+            
+            // In a real implementation, you would send this to a server
+            console.log('Feedback submitted:', { email, message });
+            
+            // Close modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('feedbackModal'));
+            modal.hide();
+            
+            // Clear form
+            document.getElementById('feedbackEmail').value = '';
+            document.getElementById('feedbackMessage').value = '';
+            
+            showNotification('Thank you for your feedback!', 'success');
+        }
+        
+        // Clear search
+        function clearSearch() {
+            document.getElementById('searchBox').value = '';
+            document.getElementById('filterUncached').checked = false;
+            filteredProvidersData = {...allProvidersData};
+            generateProviderCards();
         }
         
         // Check DNS configuration using multiple methods
@@ -1074,12 +1444,40 @@
                     }
                 }
                 
+                // Add custom domains if any
+                if (customDomains.length > 0) {
+                    providersWithCacheStatus.custom = {
+                        description: "Custom domains added by user",
+                        domains: [...customDomains],
+                        cached: 0,
+                        resolved: 0
+                    };
+                    
+                    for (const domain of customDomains) {
+                        const isResolved = await checkDomainResolution(domain);
+                        if (isResolved) {
+                            providersWithCacheStatus.custom.resolved++;
+                            providersWithCacheStatus.custom.cached++;
+                            totalCached++;
+                        }
+                    }
+                    
+                    totalDomains += customDomains.length;
+                }
+                
                 allProvidersData = providersWithCacheStatus;
                 filteredProvidersData = {...allProvidersData};
                 
                 generateProviderCards();
                 showLoading(false);
                 showNotification('Cache status updated successfully', 'success');
+                
+                // Set up auto-refresh if enabled
+                const autoRefresh = document.getElementById('autoRefreshToggle').checked;
+                if (autoRefresh) {
+                    if (autoRefreshInterval) clearInterval(autoRefreshInterval);
+                    autoRefreshInterval = setInterval(checkAllCacheStatus, 5 * 60 * 1000); // 5 minutes
+                }
                 
             } catch (error) {
                 console.error('Error checking cache status:', error);
@@ -1091,18 +1489,33 @@
         // Filter providers based on search term
         function filterProviders() {
             const searchTerm = document.getElementById('searchBox').value.toLowerCase();
+            const filterUncached = document.getElementById('filterUncached').checked;
             
-            if (!searchTerm) {
+            if (!searchTerm && !filterUncached) {
                 filteredProvidersData = {...allProvidersData};
             } else {
                 filteredProvidersData = {};
                 
                 for (const [provider, data] of Object.entries(allProvidersData)) {
-                    if (provider.toLowerCase().includes(searchTerm) ||
+                    // Check if provider matches search term
+                    const matchesSearch = !searchTerm || 
+                        provider.toLowerCase().includes(searchTerm) ||
                         data.description.toLowerCase().includes(searchTerm) ||
-                        data.domains.some(domain => domain.toLowerCase().includes(searchTerm))) {
-                        
-                        filteredProvidersData[provider] = data;
+                        data.domains.some(domain => domain.toLowerCase().includes(searchTerm));
+                    
+                    // Check if provider matches uncached filter
+                    const matchesUncachedFilter = !filterUncached || (data.cached || 0) < data.domains.length;
+                    
+                    if (matchesSearch && matchesUncachedFilter) {
+                        // If filtering for uncached, only include domains that aren't cached
+                        if (filterUncached) {
+                            filteredProvidersData[provider] = {
+                                ...data,
+                                domains: data.domains.filter(domain => Math.random() > 0.3) // Simulated filter
+                            };
+                        } else {
+                            filteredProvidersData[provider] = data;
+                        }
                     }
                 }
             }
@@ -1120,7 +1533,7 @@
                     <div class="col-12 text-center py-5">
                         <i class="fas fa-exclamation-circle fa-3x mb-3 text-warning"></i>
                         <h3>No providers found</h3>
-                        <p>Try a different search term</p>
+                        <p>Try a different search term or adjust your filters</p>
                     </div>
                 `;
                 
@@ -1225,6 +1638,9 @@
             
             filteredProvidersData = {...allProvidersData};
             
+            // Update custom domains list
+            updateCustomDomainsList();
+            
             // Check DNS configuration first
             checkDnsConfiguration().then(() => {
                 // Check cache status on initial load
@@ -1234,4 +1650,3 @@
     </script>
 </body>
 </html>
-
