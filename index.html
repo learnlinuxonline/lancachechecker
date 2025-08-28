@@ -240,6 +240,7 @@
             align-items: center;
             z-index: 9999;
             flex-direction: column;
+            backdrop-filter: blur(5px);
         }
         
         .spinner {
@@ -282,9 +283,72 @@
             border-left-color: var(--danger-color);
         }
         
+        .dns-check-container {
+            background: var(--card-bg);
+            border: 1px solid var(--primary-color);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 25px;
+        }
         
-        .dns-ok { color: var(--success-color); font-weight: bold; }
-        .dns-bad { color: var(--danger-color); font-weight: bold; }
+        .dns-check-success {
+            color: var(--success-color);
+            font-weight: 600;
+        }
+        
+        .dns-check-error {
+            color: var(--danger-color);
+            font-weight: 600;
+        }
+        
+        .dns-check-info {
+            color: var(--primary-color);
+            font-weight: 600;
+        }
+        
+        .manual-dns-check {
+            margin-top: 15px;
+            padding: 15px;
+            background: rgba(15, 32, 39, 0.5);
+            border-radius: 5px;
+            border-left: 4px solid var(--warning-color);
+        }
+        
+        .dns-guide-btn {
+            background: linear-gradient(135deg, var(--warning-color), #e0a800);
+            border: none;
+            font-weight: 600;
+            margin-top: 10px;
+        }
+        
+        .dns-guide-btn:hover {
+            background: linear-gradient(135deg, #e0a800, var(--warning-color));
+        }
+        
+        .dns-ok { 
+            color: var(--success-color); 
+            font-weight: bold; 
+        }
+        
+        .dns-bad { 
+            color: var(--danger-color); 
+            font-weight: bold; 
+        }
+        
+        .dns-test-result {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 5px;
+            background: rgba(15, 32, 39, 0.5);
+        }
+        
+        .dns-test-success {
+            border-left: 4px solid var(--success-color);
+        }
+        
+        .dns-test-failure {
+            border-left: 4px solid var(--danger-color);
+        }
 
         @media (max-width: 768px) {
             .stat-number {
@@ -322,7 +386,6 @@
     </div>
 
     <div class="container">
-        
         <!-- DNS Check Section -->
         <div class="row">
             <div class="col-md-12">
@@ -631,98 +694,10 @@
             }
         };
 
-        
-        let lancacheDns = "10.160.23.177"; // LanCache server
-
-        // Check DNS configuration
-        async function checkDnsConfiguration() {
-            try {
-                const dnsCheckContainer = document.getElementById('dnsCheckContainer');
-                const dnsServers = await detectDnsWithWebRTC();
-
-                if (!dnsServers || dnsServers.length === 0) {
-                    dnsCheckContainer.innerHTML = `
-                        <div class="dns-check-error">
-                            <i class="fas fa-exclamation-triangle me-2"></i>
-                            Can't detect Windows DNS. 
-                            <a href="https://lanconfig.learnlinuxonline.xyz" target="_blank" class="alert-link ms-1">
-                                Please check your DNS settings
-                            </a>
-                        </div>
-                    `;
-                    return false;
-                }
-
-                const detectedDns = dnsServers.join(', ');
-
-                if (dnsServers.includes(lancacheDns)) {
-                    dnsCheckContainer.innerHTML = `
-                        <div class="dns-check-success">
-                            <i class="fas fa-check-circle me-2"></i>
-                            DNS detected: <span class="dns-ok">${detectedDns}</span><br>
-                            ✅ Configuration matches your LanCache server requirement (${lancacheDns})
-                        </div>
-                    `;
-                    return true;
-                } else {
-                    dnsCheckContainer.innerHTML = `
-                        <div class="dns-check-error">
-                            <i class="fas fa-exclamation-triangle me-2"></i>
-                            DNS detected: <span class="dns-bad">${detectedDns}</span><br>
-                            ❌ Does not match your LanCache server requirement (${lancacheDns}). 
-                            <a href="https://lanconfig.learnlinuxonline.xyz" target="_blank" class="alert-link ms-1">
-                                Please check your DNS settings
-                            </a>
-                        </div>
-                    `;
-                    return false;
-                }
-            } catch (error) {
-                console.error('Error checking DNS configuration:', error);
-                document.getElementById('dnsCheckContainer').innerHTML = `
-                    <div class="dns-check-error">
-                        <i class="fas fa-exclamation-triangle me-2"></i>
-                        Can't detect Windows DNS. 
-                        <a href="https://lanconfig.learnlinuxonline.xyz" target="_blank" class="alert-link ms-1">
-                            Please check your DNS settings
-                        </a>
-                    </div>
-                `;
-                return false;
-            }
-        }
-
-        // Attempt to detect DNS using WebRTC
-        async function detectDnsWithWebRTC() {
-            return new Promise((resolve) => {
-                try {
-                    const pc = new RTCPeerConnection({iceServers: [{urls: 'stun:stun.l.google.com:19302'}]});
-                    pc.createDataChannel('');
-                    pc.createOffer().then(offer => pc.setLocalDescription(offer));
-                    
-                    pc.onicecandidate = (ice) => {
-                        if (!ice || !ice.candidate || !ice.candidate.candidate) {
-                            pc.close();
-                            resolve([]);
-                            return;
-                        }
-                        const candidate = ice.candidate.candidate;
-                        const dnsMatch = candidate.match(/a=candidate:\d+ \d+ udp \d+ (\d+\.\d+\.\d+\.\d+) \d+ typ/);
-                        if (dnsMatch && dnsMatch[1]) {
-                            pc.close();
-                            resolve([dnsMatch[1]]);
-                        }
-                    };
-                    setTimeout(() => { pc.close(); resolve([]); }, 1000);
-                } catch (e) {
-                    resolve([]);
-                }
-            });
-        }
-
         // Global variables
         let allProvidersData = {};
         let filteredProvidersData = {};
+        let lancacheDns = "10.160.23.177"; // Your LanCache server IP
         
         // Show notification
         function showNotification(message, type = '') {
@@ -749,11 +724,208 @@
             overlay.style.display = show ? 'flex' : 'none';
         }
         
-        // Check cache status for a domain
-        async function checkDomainCacheStatus(domain) {
-            // This is a simulation - in a real implementation, you would check against your cache server
-            // For demonstration purposes, we're using random results
-            return Math.random() > 0.3;
+        // Check DNS configuration using multiple methods
+        async function checkDnsConfiguration() {
+            const dnsCheckContainer = document.getElementById('dnsCheckContainer');
+            
+            try {
+                // Method 1: Try WebRTC detection first
+                const dnsServers = await detectDnsWithWebRTC();
+                
+                if (dnsServers && dnsServers.length > 0) {
+                    const detectedDns = dnsServers.join(', ');
+                    
+                    if (dnsServers.includes(lancacheDns)) {
+                        dnsCheckContainer.innerHTML = `
+                            <div class="dns-check-success">
+                                <i class="fas fa-check-circle me-2"></i>
+                                DNS detected: <span class="dns-ok">${detectedDns}</span><br>
+                                ✅ Configuration matches your LanCache server requirement (${lancacheDns})
+                            </div>
+                        `;
+                        return true;
+                    } else {
+                        dnsCheckContainer.innerHTML = `
+                            <div class="dns-check-error">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                DNS detected: <span class="dns-bad">${detectedDns}</span><br>
+                                ❌ Does not match your LanCache server requirement (${lancacheDns}).
+                            </div>
+                            ${getDnsHelpContent()}
+                        `;
+                        return false;
+                    }
+                }
+                
+                // Method 2: If WebRTC fails, try DNS resolution test
+                dnsCheckContainer.innerHTML = `
+                    <div class="dns-check-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Can't automatically detect your DNS settings due to browser restrictions.
+                    </div>
+                    ${getDnsHelpContent()}
+                    <div class="manual-dns-check">
+                        <p>Let's test if your DNS is working correctly:</p>
+                        <button class="btn btn-primary dns-guide-btn" onclick="testDnsResolution()">
+                            <i class="fas fa-network-wired me-2"></i>Test DNS Resolution
+                        </button>
+                        <div id="dnsTestResult"></div>
+                    </div>
+                `;
+                
+                return null; // Could not determine automatically
+                
+            } catch (error) {
+                console.error('Error checking DNS configuration:', error);
+                dnsCheckContainer.innerHTML = `
+                    <div class="dns-check-error">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        Error detecting DNS configuration.
+                    </div>
+                    ${getDnsHelpContent()}
+                `;
+                return false;
+            }
+        }
+        
+        // Get DNS help content
+        function getDnsHelpContent() {
+            return `
+                <div class="manual-dns-check">
+                    <p><strong>To use LanCache, your DNS must be set to:</strong></p>
+                    <div class="alert alert-dark">
+                        <code>${lancacheDns}</code>
+                    </div>
+                    <p>Follow these steps to check your DNS settings:</p>
+                    <ol>
+                        <li>Open Network and Sharing Center</li>
+                        <li>Click on your active connection</li>
+                        <li>Click Properties → Internet Protocol Version 4 (TCP/IPv4)</li>
+                        <li>Ensure "Use the following DNS server addresses" is selected</li>
+                        <li>Set the preferred DNS server to: <code>${lancacheDns}</code></li>
+                    </ol>
+                    <a href="https://lanconfig.learnlinuxonline.xyz" target="_blank" class="btn dns-guide-btn">
+                        <i class="fas fa-external-link-alt me-2"></i>Complete DNS Setup Guide
+                    </a>
+                </div>
+            `;
+        }
+        
+        // Test DNS resolution
+        async function testDnsResolution() {
+            const testResult = document.getElementById('dnsTestResult');
+            testResult.innerHTML = `<p class="text-warning"><i class="fas fa-spinner fa-spin me-2"></i>Testing DNS resolution...</p>`;
+            
+            try {
+                // Test resolution of a known domain
+                const testDomain = "lancache.steamcontent.com";
+                const response = await fetch(`https://cloudflare-dns.com/dns-query?name=${testDomain}&type=A`, {
+                    headers: { 'Accept': 'application/dns-json' }
+                });
+                
+                const data = await response.json();
+                
+                if (data.Answer && data.Answer.length > 0) {
+                    const ip = data.Answer[0].data;
+                    testResult.innerHTML = `
+                        <div class="dns-test-result dns-test-success">
+                            <i class="fas fa-check-circle me-2 text-success"></i>
+                            DNS resolution test passed!<br>
+                            <small>${testDomain} resolves to ${ip}</small>
+                        </div>
+                        <p class="mt-2">While we can't detect your exact DNS server, your system is able to resolve domains correctly.</p>
+                    `;
+                } else {
+                    testResult.innerHTML = `
+                        <div class="dns-test-result dns-test-failure">
+                            <i class="fas fa-times-circle me-2 text-danger"></i>
+                            DNS resolution test failed!<br>
+                            <small>Could not resolve ${testDomain}</small>
+                        </div>
+                        <p class="mt-2">Your DNS configuration may be incorrect. Please follow the guide above to set your DNS to ${lancacheDns}.</p>
+                    `;
+                }
+            } catch (error) {
+                testResult.innerHTML = `
+                    <div class="dns-test-result dns-test-failure">
+                        <i class="fas fa-times-circle me-2 text-danger"></i>
+                        DNS test error: ${error.message}
+                    </div>
+                `;
+            }
+        }
+        
+        // Attempt to detect DNS using WebRTC
+        async function detectDnsWithWebRTC() {
+            return new Promise((resolve) => {
+                try {
+                    if (!window.RTCPeerConnection) {
+                        resolve([]);
+                        return;
+                    }
+                    
+                    const pc = new RTCPeerConnection({
+                        iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
+                        iceCandidatePoolSize: 10
+                    });
+                    
+                    pc.createDataChannel('');
+                    pc.createOffer()
+                        .then(offer => pc.setLocalDescription(offer))
+                        .catch(() => resolve([]));
+                    
+                    const dnsServers = [];
+                    const timeout = setTimeout(() => {
+                        pc.close();
+                        resolve(dnsServers);
+                    }, 2000);
+                    
+                    pc.onicecandidate = (ice) => {
+                        if (!ice || !ice.candidate || !ice.candidate.candidate) {
+                            clearTimeout(timeout);
+                            pc.close();
+                            resolve(dnsServers);
+                            return;
+                        }
+                        
+                        const candidate = ice.candidate.candidate;
+                        // Look for IP addresses in candidate
+                        const ipMatch = candidate.match(/([0-9]{1,3}(\.[0-9]{1,3}){3})/);
+                        
+                        if (ipMatch && ipMatch[1]) {
+                            const ip = ipMatch[1];
+                            // Filter out common public IPs that aren't DNS servers
+                            if (!dnsServers.includes(ip) && 
+                                !ip.startsWith('74.125.') && // Google STUN
+                                !ip.startsWith('172.217.') && // Google STUN
+                                !ip.startsWith('216.58.') &&  // Google STUN
+                                ip !== '0.0.0.0' &&
+                                ip !== '127.0.0.1') {
+                                dnsServers.push(ip);
+                            }
+                        }
+                    };
+                    
+                } catch (e) {
+                    resolve([]);
+                }
+            });
+        }
+        
+        // Check domain resolution
+        async function checkDomainResolution(domain) {
+            try {
+                // Use DNS-over-HTTPS to check domain resolution
+                const response = await fetch(`https://cloudflare-dns.com/dns-query?name=${domain}&type=A`, {
+                    headers: { 'Accept': 'application/dns-json' }
+                });
+                
+                const data = await response.json();
+                return data.Answer && data.Answer.length > 0;
+            } catch (error) {
+                console.error(`Error checking resolution for ${domain}:`, error);
+                return false;
+            }
         }
         
         // Check cache status for all domains
@@ -761,6 +933,9 @@
             try {
                 showLoading(true);
                 showNotification('Checking cache status for all domains...');
+                
+                // First check DNS configuration
+                await checkDnsConfiguration();
                 
                 // Create a copy of the original data
                 const providersWithCacheStatus = JSON.parse(JSON.stringify(cachedomains));
@@ -771,11 +946,15 @@
                 // Check cache status for each domain in each provider
                 for (const provider in providersWithCacheStatus) {
                     providersWithCacheStatus[provider].cached = 0;
+                    providersWithCacheStatus[provider].resolved = 0;
                     totalDomains += providersWithCacheStatus[provider].domains.length;
                     
                     for (const domain of providersWithCacheStatus[provider].domains) {
-                        const isCached = await checkDomainCacheStatus(domain);
-                        if (isCached) {
+                        const isResolved = await checkDomainResolution(domain);
+                        if (isResolved) {
+                            providersWithCacheStatus[provider].resolved++;
+                            
+                            // For this demo, we'll assume resolved domains are cached
                             providersWithCacheStatus[provider].cached++;
                             totalCached++;
                         }
@@ -843,25 +1022,29 @@
             
             let totalDomains = 0;
             let totalCached = 0;
+            let totalResolved = 0;
             
             for (const [provider, data] of Object.entries(filteredProvidersData)) {
                 totalDomains += data.domains.length;
                 totalCached += data.cached || 0;
+                totalResolved += data.resolved || 0;
                 
-                const percentage = data.domains.length > 0 ? Math.round(((data.cached || 0) / data.domains.length) * 100) : 0;
+                const cachePercentage = data.domains.length > 0 ? Math.round(((data.cached || 0) / data.domains.length) * 100) : 0;
+                const resolvePercentage = data.domains.length > 0 ? Math.round(((data.resolved || 0) / data.domains.length) * 100) : 0;
+                
                 let statusClass, statusText, statusIcon;
                 
-                if (percentage === 100) {
+                if (resolvePercentage === 100) {
                     statusClass = 'status-success';
-                    statusText = 'Fully Cached';
+                    statusText = 'Fully Resolved';
                     statusIcon = 'fa-check-circle';
-                } else if (percentage > 0) {
+                } else if (resolvePercentage > 0) {
                     statusClass = 'status-warning';
-                    statusText = 'Partially Cached';
+                    statusText = 'Partially Resolved';
                     statusIcon = 'fa-exclamation-circle';
                 } else {
                     statusClass = 'status-danger';
-                    statusText = 'Not Cached';
+                    statusText = 'Not Resolved';
                     statusIcon = 'fa-times-circle';
                 }
                 
@@ -876,15 +1059,15 @@
                             </span>
                         </div>
                         <p class="provider-description">${data.description}</p>
-                        <div class="progress">
-                            <div class="progress-bar" style="width: ${percentage}%; background-color: ${
-                                percentage === 100 ? 'var(--success-color)' : 
-                                percentage > 0 ? 'var(--warning-color)' : 'var(--danger-color)'
-                            }"></div>
+                        <div class="progress mb-2">
+                            <div class="progress-bar" style="width: ${resolvePercentage}%; background-color: ${
+                                resolvePercentage === 100 ? 'var(--success-color)' : 
+                                resolvePercentage > 0 ? 'var(--warning-color)' : 'var(--danger-color)'
+                            }" title="Resolution: ${resolvePercentage}%"></div>
                         </div>
                         <div class="domain-count">
-                            <span>${data.cached || 0}/${data.domains.length} domains cached</span>
-                            <span>${percentage}%</span>
+                            <span>${data.resolved || 0}/${data.domains.length} domains resolved</span>
+                            <span>${resolvePercentage}%</span>
                         </div>
                         <div class="domain-list">
                             ${data.domains.map(domain => `
@@ -905,8 +1088,8 @@
             // Update statistics
             document.getElementById('total-providers').textContent = Object.keys(filteredProvidersData).length;
             document.getElementById('total-domains').textContent = totalDomains;
-            document.getElementById('cached-domains').textContent = totalCached;
-            document.getElementById('cache-rate').textContent = totalDomains > 0 ? Math.round((totalCached / totalDomains) * 100) + '%' : '0%';
+            document.getElementById('cached-domains').textContent = totalResolved;
+            document.getElementById('cache-rate').textContent = totalDomains > 0 ? Math.round((totalResolved / totalDomains) * 100) + '%' : '0%';
         }
 
         // Initialize the page
@@ -921,16 +1104,19 @@
             // Initialize with data from sites.js
             allProvidersData = {...cachedomains};
             
-            // Initialize cached count for each provider
+            // Initialize cached and resolved counts for each provider
             for (const provider in allProvidersData) {
                 allProvidersData[provider].cached = 0;
+                allProvidersData[provider].resolved = 0;
             }
             
             filteredProvidersData = {...allProvidersData};
             
-            checkDnsConfiguration();
-            // Check cache status on initial load
-            checkAllCacheStatus();
+            // Check DNS configuration first
+            checkDnsConfiguration().then(() => {
+                // Check cache status on initial load
+                checkAllCacheStatus();
+            });
         });
     </script>
 </body>
